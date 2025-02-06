@@ -140,6 +140,11 @@ if __name__ == '__main__':
     # TimeXer
     parser.add_argument('--patch_len', type=int, default=16, help='patch length')
 
+    # N-BEATS Mamba:
+    parser.add_argument('--nbeats_blocks', type=int, default=3, help='number of N-BEATS blocks')
+
+
+
     args = parser.parse_args()
     if torch.cuda.is_available() and args.use_gpu:
         args.device = torch.device('cuda:{}'.format(args.gpu))
