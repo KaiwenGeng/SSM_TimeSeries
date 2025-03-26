@@ -177,6 +177,11 @@ if __name__ == '__main__':
         for ii in range(args.itr):
             # setting record of experiments
             exp = Exp(args)  # set experiments
+            total_params = sum(p.numel() for p in exp.model.parameters())
+            trainable_params = sum(p.numel() for p in exp.model.parameters() if p.requires_grad)
+            print("*************** Parameters Count ***************")
+            print(f'Total parameters: {total_params}')
+            print(f'Trainable parameters: {trainable_params}')
             setting = '{}_{}_{}_{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_el{}_dl{}_df{}_expand{}_dc{}_fc{}_eb{}_dt{}_{}_{}'.format(
                 args.task_name,
                 args.model_id,
