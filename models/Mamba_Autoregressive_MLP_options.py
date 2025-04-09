@@ -3,8 +3,9 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from layers.Embed import DataEmbedding_wo_pos
+
 from mamba_ssm import Mamba
+from layers.Embed import DataEmbedding_wo_pos  # note: there's no positional embedding 
 
 class FeedForward(nn.Module):
     def __init__(self, d_model, d_ff, dropout=0.1):
@@ -30,9 +31,6 @@ class MambaLayer(nn.Module):
         super().__init__()
         self.mamba = Mamba(
             d_model = configs.d_model,
-            d_state = configs.d_ff,
-            d_conv = configs.d_conv,
-            expand = configs.expand,
         )
         self.dropout = nn.Dropout(p=configs.dropout)
         self.norm = nn.LayerNorm(configs.d_model)
@@ -50,9 +48,6 @@ class MambaLayerWithFFN(nn.Module):
         super().__init__()
         self.mamba = Mamba(
             d_model=configs.d_model,
-            d_state=configs.d_ff,
-            d_conv=configs.d_conv,
-            expand=configs.expand,
         )
         self.dropout = nn.Dropout(p=configs.dropout)
         self.norm = nn.LayerNorm(configs.d_model)
@@ -109,77 +104,24 @@ class Model(nn.Module):
         print("Model initialized with autoregressive option:", configs.autoregressive_option)
         print("Model initialized with Mamba option:", configs.mamba_ffn_option)
 
-    
     def forecast(self, x_enc, x_mark_enc):
-        """Non-autoregressive forecasting"""
-        mean_enc = x_enc.mean(1, keepdim=True).detach()
-        x_enc = x_enc - mean_enc
-        std_enc = torch.sqrt(torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5).detach()
-        x_enc = x_enc / std_enc
-
         x = self.embedding(x_enc, x_mark_enc)
-        x = self.dropout(x)
         x = self.mamba(x)
         x_out = self.out_layer(x)
-        x_out = x_out * std_enc + mean_enc
         return x_out
-    
-    def forecast_AR(self, x_enc, x_mark_enc):
-        """Autoregressive forecasting"""
-        # Get normalization parameters from input
-        mean_enc = x_enc.mean(1, keepdim=True).detach()
-        x_enc_norm = x_enc - mean_enc
-        std_enc = torch.sqrt(torch.var(x_enc_norm, dim=1, keepdim=True, unbiased=False) + 1e-5).detach()
-        x_enc_norm = x_enc_norm / std_enc
-        
-        batch_size, seq_len, feature_dim = x_enc.shape
-        
-        # Initialize prediction with the input sequence
-        input_seq = x_enc_norm.clone()
-        
-        # Store predictions
-        predictions = []
-        
-        # Create marker tensor for the entire prediction length
-        # Using the last timestep's marker and repeating it
-        if x_mark_enc is not None:
-            mark_pred = x_mark_enc[:, -1:].repeat(1, self.pred_len, 1)
-        else:
-            mark_pred = None
-        
-        # Generate predictions step by step
-        for i in range(self.pred_len):
-            # Get embedding for the current sequence
-            embed = self.embedding(input_seq, x_mark_enc)
-            embed = self.dropout(embed)
-            
-            # Pass through Mamba model
-            hidden = self.mamba(embed)
-            
-            # Get prediction for the last time step
-            pred = self.out_layer(hidden[:, -1:])
-            
-            # Store the prediction
-            predictions.append(pred)
-            
-            # Update input sequence for the next step
-            input_seq = torch.cat([input_seq[:, 1:], pred], dim=1)
-            
-            # Update markers if needed
-            if x_mark_enc is not None:
-                x_mark_enc = torch.cat([x_mark_enc[:, 1:], mark_pred[:, i:i+1]], dim=1)
-        
-        # Concatenate predictions and denormalize
-        predictions = torch.cat(predictions, dim=1)
-        predictions = predictions * std_enc + mean_enc
-        
-        return predictions
+
+    def autoregressive_forecast(self, x_dec, x_mark_dec):
+        x = self.embedding(x_dec, x_mark_dec)
+        x = self.mamba(x)
+        x_out = self.out_layer(x)
+        return x_out
 
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
-        if self.task_name in ['short_term_forecast', 'long_term_forecast']:
-            if self.autoregressive_option:
-                x_out = self.forecast_AR(x_enc, x_mark_enc)
-            else:
-                x_out = self.forecast(x_enc, x_mark_enc)
-                x_out = x_out[:, -self.pred_len:, :]
-            return x_out
+        if self.autoregressive_option:
+            # Autoregressive branch: use only the decoder input.
+            x_out = self.autoregressive_forecast(x_dec, x_mark_dec)
+            return x_out[:, -self.pred_len:, :]
+        else:
+            # Original seq2seq branch: use the encoder input.
+            x_out = self.forecast(x_enc, x_mark_enc)
+            return x_out[:, -self.pred_len:, :]

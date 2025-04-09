@@ -30,7 +30,8 @@ for pred_len in 96 192 336 720; do
       --enc_in 7 \
       --dec_in 7 \
       --c_out 7 \
-      --d_model 64 \
+      --d_model 256 \
+      --d_ff 1024 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option False
@@ -50,13 +51,13 @@ for pred_len in 96 192 336 720; do
       --seq_len $pred_len \
       --label_len 48 \
       --pred_len $pred_len \
-      --e_layers 1 \
       --d_layers 1 \
       --factor 3 \
       --enc_in 7 \
       --dec_in 7 \
       --c_out 7 \
-      --d_model 64 \
+      --d_model 256 \
+      --d_ff 1024 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option True
@@ -79,20 +80,19 @@ for pred_len in 96 192 336 720; do
       --seq_len $pred_len \
       --label_len 48 \
       --pred_len $pred_len \
-      --e_layers 2 \
-      --d_layers 1 \
+      --e_layers 1 \
       --enc_in 7 \
       --expand 2 \
-      --d_ff 16 \
       --d_conv 4 \
       --c_out 7 \
-      --d_model 192 \
+      --d_model 256 \
+      --d_ff 768 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option False \
       --mamba_ffn_option False
 
-    # Combination 2: autoregressive_option = True, mamba_ffn_option = False
+    # Combination 2: autoregressive_option = True, mamba_ffn_option = False   # mamba 6d^2 ---> FFN another 6d^2 factor of 3 to match 12d^2 
 
     python -u run.py \
       --task_name long_term_forecast \
@@ -106,14 +106,13 @@ for pred_len in 96 192 336 720; do
       --seq_len $pred_len \
       --label_len 48 \
       --pred_len $pred_len \
-      --e_layers 2 \
-      --d_layers 1 \
+      --e_layers 1 \
       --enc_in 7 \
       --expand 2 \
-      --d_ff 16 \
       --d_conv 4 \
       --c_out 7 \
-      --d_model 192 \
+      --d_model 256 \
+      --d_ff 768 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option True \
@@ -132,14 +131,13 @@ for pred_len in 96 192 336 720; do
       --seq_len $pred_len \
       --label_len 48 \
       --pred_len $pred_len \
-      --e_layers 2 \
-      --d_layers 1 \
+      --e_layers 1 \
       --enc_in 7 \
       --expand 2 \
-      --d_ff 16 \
       --d_conv 4 \
       --c_out 7 \
-      --d_model 192 \
+      --d_model 256 \
+      --d_ff 768 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option False \
@@ -158,14 +156,13 @@ for pred_len in 96 192 336 720; do
       --seq_len $pred_len \
       --label_len 48 \
       --pred_len $pred_len \
-      --e_layers 2 \
-      --d_layers 1 \
+      --e_layers 1 \
       --enc_in 7 \
       --expand 2 \
-      --d_ff 16 \
       --d_conv 4 \
       --c_out 7 \
-      --d_model 192 \
+      --d_model 256 \
+      --d_ff 768 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option True \
