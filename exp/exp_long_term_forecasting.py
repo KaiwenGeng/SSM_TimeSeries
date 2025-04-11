@@ -258,8 +258,19 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         f.write(setting + "  \n")
         f.write('mse:{}, mae:{}, dtw:{}'.format(mse, mae, dtw))
         f.write('\n')
+        # also write the number of parameters
+        f.write('Number of parameters: {}\n'.format(sum(p.numel() for p in self.model.parameters())))
         f.write('\n')
         f.close()
+        dir_path = 'trial/long_term_forecast'
+        os.makedirs(dir_path, exist_ok=True)  # create directory if not exist
+        data_name = self.args.data_path.split('.')[0]
+        with open('trial/long_term_forecast/{}.csv'.format(data_name), 'a', newline='', encoding='utf-8') as f:
+            # should be formatted as:
+            # seq_len, label_len, pred_len, model name, autoregressive option, mamba_ffn_option, mse, mae, dtw, number of parameters
+            f.write('{}, {}, {}, {}, {}, {}, {}, {}, {}, {}\n'.format(self.args.seq_len, self.args.label_len, self.args.pred_len, self.args.model, self.args.autoregressive_option, self.args.mamba_ffn_option, mse, mae, dtw, sum(p.numel() for p in self.model.parameters())))
+            f.close()
+
 
         np.save(folder_path + 'metrics.npy', np.array([mae, mse, rmse, mape, mspe]))
         np.save(folder_path + 'pred.npy', preds)

@@ -19,7 +19,6 @@ class ARDecoderLayer(DecoderLayer):
             tau=tau, delta=None
         )[0])
         x = self.norm1(x)
-        
         y = self.norm2(x)
         y = self.dropout(self.activation(self.conv1(y.transpose(-1, 1))))
         y = self.dropout(self.conv2(y).transpose(-1, 1))
@@ -106,17 +105,34 @@ class Model(nn.Module):
                 )
 
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
+        # x_enc = [x_{t-96}, x_{t-95}, ..., x_{t-1}]                    # length 96
+        # x_dec = [x_{t-48}, ..., x_{t-1}, placeholder_{t}, ..., placeholder_{t+95}]  # length 144
+        mean_enc = x_enc.mean(1, keepdim=True).detach()
+        x_enc = x_enc - mean_enc
+        std_enc = torch.sqrt(torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5).detach()
+        x_enc = x_enc / std_enc
+
         enc_out = self.enc_embedding(x_enc, x_mark_enc)
         enc_out, _ = self.encoder(enc_out, attn_mask=None)
 
         dec_out = self.dec_embedding(x_dec, x_mark_dec)
         dec_out = self.decoder(dec_out, enc_out, x_mask=None, cross_mask=None)
+        dec_out = dec_out * std_enc + mean_enc
         return dec_out
     
     def forecast_ar(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
+        # x_enc = [x_{t-96}, x_{t-95}, ..., x_{t-1}]                    # length 96
+        # x_dec = [x_{t-48}, ..., x_{t-1}, placeholder_{t}, ..., placeholder_{t+95}]  # length 144
+        # note: mean and std should only be considered with self.label_len because the rest are placeholder
+        mean_dec = x_dec[:,:self.label_len,:].mean(1, keepdim=True).detach()
+        x_dec[:,:self.label_len,:] = x_dec[:,:self.label_len,:] - mean_dec
+        std_dec = torch.sqrt(torch.var(x_dec[:,:self.label_len,:], dim=1, keepdim=True, unbiased=False) + 1e-5).detach()
+        x_dec[:,:self.label_len,:] = x_dec[:,:self.label_len,:] / std_dec
+
 
         dec_out = self.dec_embedding(x_dec, x_mark_dec)
         dec_out = self.decoder(dec_out, x_mask=None, tau=None, delta=None)
+        dec_out = dec_out * std_dec + mean_dec
         return dec_out
 
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):

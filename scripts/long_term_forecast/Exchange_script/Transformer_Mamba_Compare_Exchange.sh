@@ -16,16 +16,16 @@ for pred_len in 96 192 336 720; do
     # Transformer: 2 combinations
     ##############################
     # Combination 1: autoregressive_option = False
-    # d_model = 168, d_ff = 672 as 28 * 168^2 is close to 12 * 256^2
+    # d_model = 336, d_ff = 1344 as 28 * 384^2 is close to 12 * 512^2
     label_len=$((pred_len / 2)) 
     python -u run.py \
       --task_name long_term_forecast \
       --is_training 1 \
-      --root_path ./dataset/ETT-small/ \
-      --data_path ETTh1.csv \
-      --model_id ETTh1_${pred_len}_${pred_len}_Transformer_autoregressiveFalse \
+      --root_path ./dataset/exchange_rate/ \
+      --data_path exchange_rate.csv \
+      --model_id exchange_rate_${pred_len}_${pred_len}_Transformer_autoregressiveFalse \
       --model $model_name1 \
-      --data ETTh1 \
+      --data custom \
       --features M \
       --seq_len $pred_len \
       --label_len $label_len \
@@ -33,11 +33,11 @@ for pred_len in 96 192 336 720; do
       --e_layers 1 \
       --d_layers 1 \
       --factor 3 \
-      --enc_in 7 \
-      --dec_in 7 \
-      --c_out 7 \
-      --d_model 168 \
-      --d_ff 672 \
+      --enc_in 8 \
+      --dec_in 8 \
+      --c_out 8 \
+      --d_model 336 \
+      --d_ff 1344 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option False
@@ -48,22 +48,22 @@ for pred_len in 96 192 336 720; do
     python -u run.py \
       --task_name long_term_forecast \
       --is_training 1 \
-      --root_path ./dataset/ETT-small/ \
-      --data_path ETTh1.csv \
-      --model_id ETTh1_${pred_len}_${pred_len}_Transformer_autoregressiveTrue \
+      --root_path ./dataset/exchange_rate/ \
+      --data_path exchange_rate.csv \
+      --model_id exchange_rate_${pred_len}_${pred_len}_Transformer_autoregressiveTrue \
       --model $model_name1 \
-      --data ETTh1 \
+      --data custom \
       --features M \
       --seq_len $pred_len \
       --label_len $pred_len \
       --pred_len $pred_len \
       --d_layers 1 \
       --factor 3 \
-      --enc_in 7 \
-      --dec_in 7 \
-      --c_out 7 \
-      --d_model 256 \
-      --d_ff 1024 \
+      --enc_in 8 \
+      --dec_in 8 \
+      --c_out 8 \
+      --d_model 512 \
+      --d_ff 2048 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option True
@@ -77,22 +77,22 @@ for pred_len in 96 192 336 720; do
     python -u run.py \
       --task_name long_term_forecast \
       --is_training 1 \
-      --root_path ./dataset/ETT-small/ \
-      --data_path ETTh1.csv \
-      --model_id ETTh1_${pred_len}_${pred_len}_Mamba_autoregressiveFalse_mambaFFNFalse \
+      --root_path ./dataset/exchange_rate/ \
+      --data_path exchange_rate.csv \
+      --model_id exchange_rate_${pred_len}_${pred_len}_Mamba_autoregressiveFalse_mambaFFNFalse \
       --model $model_name2 \
-      --data ETTh1 \
+      --data custom \
       --features M \
       --seq_len $pred_len \
       --label_len $label_len \
       --pred_len $pred_len \
       --e_layers 2 \
-      --enc_in 7 \
+      --enc_in 8 \
       --expand 2 \
       --d_conv 4 \
-      --c_out 7 \
-      --d_model 256 \
-      --d_ff 768 \
+      --c_out 8 \
+      --d_model 512 \
+      --d_ff 1536 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option False \
@@ -103,22 +103,22 @@ for pred_len in 96 192 336 720; do
     python -u run.py \
       --task_name long_term_forecast \
       --is_training 1 \
-      --root_path ./dataset/ETT-small/ \
-      --data_path ETTh1.csv \
-      --model_id ETTh1_${pred_len}_${pred_len}_Mamba_autoregressiveTrue_mambaFFNFalse \
+      --root_path ./dataset/exchange_rate/ \
+      --data_path exchange_rate.csv \
+      --model_id exchange_rate_${pred_len}_${pred_len}_Mamba_autoregressiveTrue_mambaFFNFalse \
       --model $model_name2 \
-      --data ETTh1 \
+      --data custom \
       --features M \
       --seq_len $pred_len \
       --label_len $pred_len \
       --pred_len $pred_len \
       --e_layers 2 \
-      --enc_in 7 \
+      --enc_in 8 \
       --expand 2 \
       --d_conv 4 \
-      --c_out 7 \
-      --d_model 256 \
-      --d_ff 768 \
+      --c_out 8 \
+      --d_model 512 \
+      --d_ff 1536 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option True \
@@ -128,22 +128,22 @@ for pred_len in 96 192 336 720; do
     python -u run.py \
       --task_name long_term_forecast \
       --is_training 1 \
-      --root_path ./dataset/ETT-small/ \
-      --data_path ETTh1.csv \
-      --model_id ETTh1_${pred_len}_${pred_len}_Mamba_autoregressiveFalse_mambaFFNTrue \
+      --root_path ./dataset/exchange_rate/ \
+      --data_path exchange_rate.csv \
+      --model_id exchange_rate_${pred_len}_${pred_len}_Mamba_autoregressiveFalse_mambaFFNTrue \
       --model $model_name2 \
-      --data ETTh1 \
+      --data custom \
       --features M \
       --seq_len $pred_len \
       --label_len $label_len \
       --pred_len $pred_len \
       --e_layers 1 \
-      --enc_in 7 \
+      --enc_in 8 \
       --expand 2 \
       --d_conv 4 \
-      --c_out 7 \
-      --d_model 256 \
-      --d_ff 768 \
+      --c_out 8 \
+      --d_model 512 \
+      --d_ff 1536 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option False \
@@ -153,22 +153,22 @@ for pred_len in 96 192 336 720; do
     python -u run.py \
       --task_name long_term_forecast \
       --is_training 1 \
-      --root_path ./dataset/ETT-small/ \
-      --data_path ETTh1.csv \
-      --model_id ETTh1_${pred_len}_${pred_len}_Mamba_autoregressiveTrue_mambaFFNTrue \
+      --root_path ./dataset/exchange_rate/ \
+      --data_path exchange_rate.csv \
+      --model_id exchange_rate_${pred_len}_${pred_len}_Mamba_autoregressiveTrue_mambaFFNTrue \
       --model $model_name2 \
-      --data ETTh1 \
+      --data custom \
       --features M \
       --seq_len $pred_len \
       --label_len $pred_len \
       --pred_len $pred_len \
       --e_layers 1 \
-      --enc_in 7 \
+      --enc_in 8 \
       --expand 2 \
       --d_conv 4 \
-      --c_out 7 \
-      --d_model 256 \
-      --d_ff 768 \
+      --c_out 8 \
+      --d_model 512 \
+      --d_ff 1536 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option True \

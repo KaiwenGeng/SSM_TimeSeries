@@ -95,6 +95,7 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.task_name = configs.task_name
         self.pred_len = configs.pred_len
+        self.label_len = configs.label_len
         self.autoregressive_option = configs.autoregressive_option
         self.embedding = DataEmbedding_wo_pos(configs.enc_in, configs.d_model, configs.embed, configs.freq, configs.dropout)
         self.dropout = nn.Dropout(p=configs.dropout)
@@ -105,15 +106,32 @@ class Model(nn.Module):
         print("Model initialized with Mamba option:", configs.mamba_ffn_option)
 
     def forecast(self, x_enc, x_mark_enc):
+        # x_enc = [x_{t-96}, x_{t-95}, ..., x_{t-1}]                    # length 96
+        # x_dec = [x_{t-48}, ..., x_{t-1}, placeholder_{t}, ..., placeholder_{t+95}]  # length 144
+        mean_enc = x_enc.mean(1, keepdim=True).detach()
+        x_enc = x_enc - mean_enc
+        std_enc = torch.sqrt(torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5).detach()
+        x_enc = x_enc / std_enc
+
         x = self.embedding(x_enc, x_mark_enc)
         x = self.mamba(x)
         x_out = self.out_layer(x)
+        x_out = x_out * std_enc + mean_enc
         return x_out
 
     def autoregressive_forecast(self, x_dec, x_mark_dec):
+        # x_enc = [x_{t-96}, x_{t-95}, ..., x_{t-1}]                    # length 96
+        # x_dec = [x_{t-48}, ..., x_{t-1}, placeholder_{t}, ..., placeholder_{t+95}]  # length 144
+        mean_dec = x_dec[:,:self.label_len,:].mean(1, keepdim=True).detach()
+        x_dec[:,:self.label_len,:] = x_dec[:,:self.label_len,:] - mean_dec
+        std_dec = torch.sqrt(torch.var(x_dec[:,:self.label_len,:], dim=1, keepdim=True, unbiased=False) + 1e-5).detach()
+        x_dec[:,:self.label_len,:] = x_dec[:,:self.label_len,:] / std_dec
+
+
         x = self.embedding(x_dec, x_mark_dec)
         x = self.mamba(x)
         x_out = self.out_layer(x)
+        x_out = x_out * std_dec + mean_dec
         return x_out
 
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
