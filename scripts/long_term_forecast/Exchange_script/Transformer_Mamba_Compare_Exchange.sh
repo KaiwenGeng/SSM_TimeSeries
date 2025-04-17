@@ -16,7 +16,7 @@ for pred_len in 96 192 336 720; do
     # Transformer: 2 combinations
     ##############################
     # Combination 1: autoregressive_option = False
-    # d_model = 336, d_ff = 1344 as 28 * 384^2 is close to 12 * 512^2
+    # d_model = 336, d_ff = 1344 as 28 * 336^2 is close to 12 * 512^2
     label_len=$((pred_len / 2)) 
     python -u run.py \
       --task_name long_term_forecast \

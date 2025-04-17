@@ -16,57 +16,59 @@ for pred_len in 96 192 336 720; do
     # Transformer: 2 combinations
     ##############################
     # Combination 1: autoregressive_option = False
-    # d_model = 168, d_ff = 672 as 28 * 168^2 is close to 12 * 256^2
+    # d_model = 336, d_ff = 1344 as 28 * 336^2 is close to 12 * 512^2
+
     label_len=$((pred_len / 2)) 
-    python -u run.py \
-      --task_name long_term_forecast \
-      --is_training 1 \
-      --root_path ./dataset/ETT-small/ \
-      --data_path ETTh1.csv \
-      --model_id ETTh1_${pred_len}_${pred_len}_Transformer_autoregressiveFalse \
-      --model $model_name1 \
-      --data ETTh1 \
-      --features M \
-      --seq_len $pred_len \
-      --label_len $label_len \
-      --pred_len $pred_len \
-      --e_layers 1 \
-      --d_layers 1 \
-      --factor 3 \
-      --enc_in 7 \
-      --dec_in 7 \
-      --c_out 7 \
-      --d_model 168 \
-      --d_ff 672 \
-      --des 'Exp' \
-      --itr 1 \
-      --autoregressive_option False
+    # python -u run.py \
+    #   --task_name long_term_forecast \
+    #   --is_training 1 \
+    #   --root_path ./dataset/ETT-small/ \
+    #   --data_path ETTh1.csv \
+    #   --model_id ETTh1_${pred_len}_${pred_len}_Transformer_autoregressiveFalse \
+    #   --model $model_name1 \
+    #   --data ETTh1 \
+    #   --features M \
+    #   --seq_len $pred_len \
+    #   --label_len $label_len \
+    #   --pred_len $pred_len \
+    #   --e_layers 1 \
+    #   --d_layers 1 \
+    #   --factor 3 \
+    #   --enc_in 7 \
+    #   --dec_in 7 \
+    #   --c_out 7 \
+    #   --d_model 336 \
+    #   --d_ff 1344 \
+    #   --des 'Exp' \
+    #   --itr 1 \
+    #   --autoregressive_option False
 
     # Combination 2: autoregressive_option = True
 
 
-    python -u run.py \
-      --task_name long_term_forecast \
-      --is_training 1 \
-      --root_path ./dataset/ETT-small/ \
-      --data_path ETTh1.csv \
-      --model_id ETTh1_${pred_len}_${pred_len}_Transformer_autoregressiveTrue \
-      --model $model_name1 \
-      --data ETTh1 \
-      --features M \
-      --seq_len $pred_len \
-      --label_len $pred_len \
-      --pred_len $pred_len \
-      --d_layers 1 \
-      --factor 3 \
-      --enc_in 7 \
-      --dec_in 7 \
-      --c_out 7 \
-      --d_model 256 \
-      --d_ff 1024 \
-      --des 'Exp' \
-      --itr 1 \
-      --autoregressive_option True
+    # python -u run.py \
+    #   --task_name long_term_forecast \
+    #   --is_training 1 \
+    #   --root_path ./dataset/ETT-small/ \
+    #   --data_path ETTh1.csv \
+    #   --model_id ETTh1_${pred_len}_${pred_len}_Transformer_autoregressiveTrue \
+    #   --model $model_name1 \
+    #   --data ETTh1 \
+    #   --features M \
+    #   --seq_len $pred_len \
+    #   --label_len $pred_len \
+    #   --pred_len $pred_len \
+    #   --e_layers 1 \
+    #   --d_layers 1 \
+    #   --factor 3 \
+    #   --enc_in 7 \
+    #   --dec_in 7 \
+    #   --c_out 7 \
+    #   --d_model 512 \
+    #   --d_ff 2048 \
+    #   --des 'Exp' \
+    #   --itr 1 \
+    #   --autoregressive_option True
 
     ##############################
     # Mamba: 4 combinations
@@ -86,13 +88,14 @@ for pred_len in 96 192 336 720; do
       --seq_len $pred_len \
       --label_len $label_len \
       --pred_len $pred_len \
-      --e_layers 2 \
+      --e_layers 1 \
+      --d_layers 1 \
       --enc_in 7 \
       --expand 2 \
-      --d_conv 4 \
+      --d_conv 7 \
       --c_out 7 \
-      --d_model 256 \
-      --d_ff 768 \
+      --d_model 512 \
+      --d_ff 1536 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option False \
@@ -112,13 +115,14 @@ for pred_len in 96 192 336 720; do
       --seq_len $pred_len \
       --label_len $pred_len \
       --pred_len $pred_len \
-      --e_layers 2 \
+      --e_layers 1 \
+      --d_layers 1 \
       --enc_in 7 \
       --expand 2 \
-      --d_conv 4 \
+      --d_conv 7 \
       --c_out 7 \
-      --d_model 256 \
-      --d_ff 768 \
+      --d_model 512 \
+      --d_ff 1536 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option True \
@@ -138,12 +142,13 @@ for pred_len in 96 192 336 720; do
       --label_len $label_len \
       --pred_len $pred_len \
       --e_layers 1 \
+      --d_layers 1 \
       --enc_in 7 \
       --expand 2 \
-      --d_conv 4 \
+      --d_conv 7 \
       --c_out 7 \
-      --d_model 256 \
-      --d_ff 768 \
+      --d_model 512 \
+      --d_ff 1536 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option False \
@@ -163,12 +168,13 @@ for pred_len in 96 192 336 720; do
       --label_len $pred_len \
       --pred_len $pred_len \
       --e_layers 1 \
+      --d_layers 1 \
       --enc_in 7 \
       --expand 2 \
-      --d_conv 4 \
+      --d_conv 7 \
       --c_out 7 \
-      --d_model 256 \
-      --d_ff 768 \
+      --d_model 512 \
+      --d_ff 1536 \
       --des 'Exp' \
       --itr 1 \
       --autoregressive_option True \
