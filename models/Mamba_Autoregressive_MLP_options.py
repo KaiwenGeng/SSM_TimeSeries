@@ -98,7 +98,8 @@ class HydraLayerWithFFN(nn.Module):
             d_model=configs.d_model,
             d_state=configs.d_state if hasattr(configs, 'd_state') else 64,
             d_conv=configs.d_conv,
-            expand=configs.expand 
+            expand=configs.expand,
+            use_mem_eff_path=True
         )
         self.dropout = nn.Dropout(p=configs.dropout)
         self.norm = nn.LayerNorm(configs.d_model)
@@ -107,7 +108,7 @@ class HydraLayerWithFFN(nn.Module):
             d_ff=configs.d_ff, 
             dropout=configs.dropout
         )
-    def forwad(self,x):
+    def forward(self,x):
         residual = x
         x = self.norm(x)
         x = self.hydra(x)
