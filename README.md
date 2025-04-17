@@ -5,4 +5,6 @@ models/Mamba_Autoregressive_MLP_options.py: support autoregressive option (confi
 bash scripts/long_term_forecast/ETT_script/Transformer_Mamba_Compare_ETTh1.sh 
 
 
-
+# Update on Apr.17 2025
+Incooporated Hydra as the encoder
+Now using Mamba2.2.2
