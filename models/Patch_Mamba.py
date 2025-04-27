@@ -3,6 +3,63 @@ from torch import nn
 from layers.Embed import PatchEmbedding
 from hydra.hydra.modules.hydra import Hydra
 import torch.nn.functional as F
+from layers.Embed import DataEmbedding_inverted
+
+class WeightedFusion(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.weight = nn.Parameter(torch.tensor(0.9))  # initialized to equal weighting
+    
+    def forward(self, x, y):
+        return self.weight * x + (1 - self.weight) * y
+class RevIN(nn.Module):
+    def __init__(self, num_features: int, eps=1e-5, affine=True):
+        """
+        :param num_features: the number of features or channels
+        :param eps: a value added for numerical stability
+        :param affine: if True, RevIN has learnable affine parameters
+        """
+        super(RevIN, self).__init__()
+        self.num_features = num_features
+        self.eps = eps
+        self.affine = affine
+        if self.affine:
+            self._init_params()
+
+    def forward(self, x, mode:str):
+        if mode == 'norm':
+            self._get_statistics(x)
+            x = self._normalize(x)
+        elif mode == 'denorm':
+            x = self._denormalize(x)
+        else: raise NotImplementedError
+        return x
+
+    def _init_params(self):
+        # initialize RevIN params: (C,)
+        self.affine_weight = nn.Parameter(torch.ones(self.num_features))
+        self.affine_bias = nn.Parameter(torch.zeros(self.num_features))
+
+    def _get_statistics(self, x):
+        dim2reduce = tuple(range(1, x.ndim-1))
+        self.mean = torch.mean(x, dim=dim2reduce, keepdim=True).detach()
+        self.stdev = torch.sqrt(torch.var(x, dim=dim2reduce, keepdim=True, unbiased=False) + self.eps).detach()
+
+    def _normalize(self, x):
+        x = x - self.mean
+        x = x / self.stdev
+        if self.affine:
+            x = x * self.affine_weight
+            x = x + self.affine_bias
+        return x
+
+    def _denormalize(self, x):
+        if self.affine:
+            x = x - self.affine_bias
+            x = x / (self.affine_weight + self.eps*self.eps)
+        x = x * self.stdev
+        x = x + self.mean
+        return x
 class EncoderLayer(nn.Module):
     def __init__(self, ssm, d_model, d_ff=None, dropout=0.1, activation="relu"):
         super(EncoderLayer, self).__init__()
@@ -85,6 +142,9 @@ class Model(nn.Module):
         self.task_name = configs.task_name
         self.seq_len = configs.seq_len
         self.pred_len = configs.pred_len
+        self.channel_embedding = DataEmbedding_inverted(configs.seq_len, configs.d_model, configs.embed, configs.freq,
+                                                    configs.dropout)
+        self.weighted_fusion = WeightedFusion()
         padding = stride
 
         # patching and embedding
@@ -110,6 +170,27 @@ class Model(nn.Module):
             ],
             norm_layer=nn.Sequential(Transpose(1,2), nn.BatchNorm1d(configs.d_model), Transpose(1,2))
         )
+        # Encoder
+        self.channel_encoder = Encoder(
+            [
+                EncoderLayer(
+                    Hydra(
+                        d_model=configs.d_model,
+                        d_state=configs.d_state if hasattr(configs, 'd_state') else 16,
+                        expand=configs.expand,
+                        headdim=configs.expand * configs.d_model // configs.n_heads,
+                        use_mem_eff_path=True
+                    ),
+                    configs.d_model,
+                    configs.d_ff,
+                    dropout=configs.dropout,
+                    activation=configs.activation
+                ) for l in range(configs.e_layers)
+            ],
+            norm_layer=nn.Sequential(Transpose(1,2), nn.BatchNorm1d(configs.d_model), Transpose(1,2))
+        )
+        self.channel_output = nn.Linear(configs.d_model, configs.pred_len, bias=True)
+        self.revin_layer = RevIN(configs.enc_in)
 
         # Prediction Head
         self.head_nf = configs.d_model * \
@@ -120,11 +201,8 @@ class Model(nn.Module):
 
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
         # Normalization from Non-stationary Transformer
-        means = x_enc.mean(1, keepdim=True).detach()
-        x_enc = x_enc - means
-        stdev = torch.sqrt(
-            torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5)
-        x_enc /= stdev
+        _, _, N = x_enc.shape
+        x_enc = self.revin_layer(x_enc, 'norm')
 
         # do patching and embedding
         x_enc = x_enc.permute(0, 2, 1)
@@ -142,13 +220,23 @@ class Model(nn.Module):
 
         # Decoder
         dec_out = self.head(enc_out)  # z: [bs x nvars x target_window]
-        dec_out = dec_out.permute(0, 2, 1)
+
+
+        ############# channel encoder #############
+        x_enc = x_enc.permute(0, 2, 1)
+        channel_embedding = self.channel_embedding(x_enc, x_mark_enc)
+        channel_enc = self.channel_encoder(channel_embedding)
+        channel_out = self.channel_output(channel_enc).permute(0, 2, 1)[:, :, :N]
+
+        ############# end of channel encoder #############
+        dec_out = self.weighted_fusion(dec_out.permute(0, 2, 1) , channel_out)
+        dec_out = self.revin_layer(dec_out, 'denorm')
 
         # De-Normalization from Non-stationary Transformer
-        dec_out = dec_out * \
-                  (stdev[:, 0, :].unsqueeze(1).repeat(1, self.pred_len, 1))
-        dec_out = dec_out + \
-                  (means[:, 0, :].unsqueeze(1).repeat(1, self.pred_len, 1))
+        # dec_out = dec_out * \
+        #           (stdev[:, 0, :].unsqueeze(1).repeat(1, self.pred_len, 1))
+        # dec_out = dec_out + \
+        #           (means[:, 0, :].unsqueeze(1).repeat(1, self.pred_len, 1))
         return dec_out
 
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
